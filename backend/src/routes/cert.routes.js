@@ -208,4 +208,90 @@ router.get(
   }
 );
 
+/**
+ * PATCH /api/certificates/:id/revoke
+ * Revoke a certificate with a specified reason
+ * Allowed roles: org_admin only
+ */
+router.patch(
+  '/:id/revoke',
+  authenticate,
+  requireRole('org_admin'),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({
+          error: 'BadRequest',
+          message: 'Revocation reason is required'
+        });
+      }
+
+      // Check certificate exists in caller's org
+      const cert = await db.get(
+        'SELECT id, status, recipient_name, title FROM certificates WHERE id = ? AND org_id = ?',
+        [id, req.user.org_id]
+      );
+
+      if (!cert) {
+        return res.status(404).json({
+          error: 'NotFound',
+          message: 'Certificate not found in your organization'
+        });
+      }
+
+      if (cert.status === 'revoked') {
+        return res.status(400).json({
+          error: 'BadRequest',
+          message: 'Certificate has already been revoked'
+        });
+      }
+
+      const revocationId = require('uuid').v4();
+      const revokedAt = new Date().toISOString();
+
+      // 1. Update certificate status to revoked
+      await db.run(
+        'UPDATE certificates SET status = "revoked" WHERE id = ?',
+        [id]
+      );
+
+      // 2. Insert into revocations table
+      await db.run(
+        `INSERT INTO revocations (id, certificate_id, revoked_by, reason, revoked_at)
+         VALUES (?, ?, ?, ?, datetime('now'))`,
+        [revocationId, id, req.user.id, reason.trim()]
+      );
+
+      // 3. Log immutable audit trail
+      const { logAudit } = require('../services/audit.service');
+      await logAudit({
+        actor_id: req.user.id,
+        action: 'certificate.revoked',
+        target_id: id,
+        metadata: {
+          org_id: req.user.org_id,
+          recipient_name: cert.recipient_name,
+          reason: reason.trim()
+        }
+      });
+
+      res.status(200).json({
+        message: 'Certificate revoked successfully',
+        revocation: {
+          id: revocationId,
+          certificate_id: id,
+          revoked_by: req.user.name,
+          reason: reason.trim(),
+          revoked_at: revokedAt
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 module.exports = router;
