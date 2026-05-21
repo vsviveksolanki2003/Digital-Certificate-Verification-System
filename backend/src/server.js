@@ -16,6 +16,7 @@ const authRoutes = require('./routes/auth.routes');
 const certRoutes = require('./routes/cert.routes');
 const verifyRoutes = require('./routes/verify.routes');
 const adminRoutes = require('./routes/admin.routes');
+const demoRoutes = require('./routes/demo.routes');
 const db = require('./db/connection');
 
 // Initialize database
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/certificates', certRoutes);
 app.use('/api/verify', verifyRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/demo', demoRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
