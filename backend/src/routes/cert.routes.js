@@ -294,4 +294,39 @@ router.patch(
   }
 );
 
+/**
+ * GET /api/certificates/:id/pdf
+ * Generates and downloads the official PDF certificate with embedded QR code
+ * Accessible publicly or by org members
+ */
+router.get('/:id/pdf', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const cert = await db.get(
+      `SELECT c.*, o.name as org_name, o.public_key as org_public_key
+       FROM certificates c
+       JOIN organizations o ON c.org_id = o.id
+       WHERE c.id = ?`,
+      [id]
+    );
+
+    if (!cert) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Certificate not found'
+      });
+    }
+
+    const { generateCertificatePdf } = require('../services/pdf.service');
+    const pdfBuffer = await generateCertificatePdf(cert);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Certificate-${cert.recipient_name.replace(/\s+/g, '_')}-${cert.id.substring(0, 8)}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
