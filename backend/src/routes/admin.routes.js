@@ -14,9 +14,9 @@ router.use(authenticate, requireRole('super_admin'));
  */
 router.get('/stats', async (req, res, next) => {
   try {
-    const orgsCount = await db.get('SELECT COUNT(*) as count, SUM(CASE WHEN status="active" THEN 1 ELSE 0 END) as active FROM organizations');
-    const certsCount = await db.get('SELECT COUNT(*) as count, SUM(CASE WHEN status="active" THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status="revoked" THEN 1 ELSE 0 END) as revoked FROM certificates');
-    const verificationsCount = await db.get('SELECT COUNT(*) as count, SUM(CASE WHEN result="valid" THEN 1 ELSE 0 END) as valid, SUM(CASE WHEN result="invalid" THEN 1 ELSE 0 END) as invalid, SUM(CASE WHEN result="revoked" THEN 1 ELSE 0 END) as revoked FROM verification_logs');
+    const orgsCount = await db.get("SELECT COUNT(*) as count, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active FROM organizations");
+    const certsCount = await db.get("SELECT COUNT(*) as count, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status='revoked' THEN 1 ELSE 0 END) as revoked FROM certificates");
+    const verificationsCount = await db.get("SELECT COUNT(*) as count, SUM(CASE WHEN result='valid' THEN 1 ELSE 0 END) as valid, SUM(CASE WHEN result='invalid' THEN 1 ELSE 0 END) as invalid, SUM(CASE WHEN result='revoked' THEN 1 ELSE 0 END) as revoked FROM verification_logs");
 
     res.status(200).json({
       stats: {

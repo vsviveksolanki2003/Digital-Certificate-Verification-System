@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { issueCertificate } = require('../services/cert.service');
+const db = require('../db/connection');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -90,7 +91,7 @@ router.get(
 
       // Get count totals
       const countResult = await db.get(
-        'SELECT COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = "revoked" THEN 1 ELSE 0 END) as revoked FROM certificates WHERE org_id = ?',
+        "SELECT COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = 'revoked' THEN 1 ELSE 0 END) as revoked FROM certificates WHERE org_id = ?",
         [req.user.org_id]
       );
 
@@ -254,7 +255,7 @@ router.patch(
 
       // 1. Update certificate status to revoked
       await db.run(
-        'UPDATE certificates SET status = "revoked" WHERE id = ?',
+        "UPDATE certificates SET status = 'revoked' WHERE id = ?",
         [id]
       );
 
