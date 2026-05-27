@@ -1,4 +1,4 @@
-# VeritasVault — Digital Document & Certificate Verification System
+# Digital Certificate Verification System
 
 > Institutional cryptographic document and certificate attestation platform powered by **ECDSA NIST P-256** digital signatures, **SHA-256** canonical payload hashing, **AES-256-GCM** key encryption at rest, and instant public QR verification.
 

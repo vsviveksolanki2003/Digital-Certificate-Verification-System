@@ -1,5 +1,5 @@
 {
-  "name": "document-verification-system",
+  "name": "digital-certificate-verification",
   "version": "1.0.0",
   "description": "Cryptographically verified digital document and certificate verification platform",
   "private": true,

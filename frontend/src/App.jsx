@@ -107,7 +107,7 @@ function AppContent() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <IconShieldCheck size={18} color="var(--accent-verified)" />
-            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>VERITAS VAULT</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>DIGITAL CERTIFICATE VERIFICATION</span>
             <span>—</span>
             <span>Cryptographically Verified Document & Credential Registry</span>
           </div>

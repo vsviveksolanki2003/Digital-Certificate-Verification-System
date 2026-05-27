@@ -51,7 +51,7 @@ export function Navbar({ activePage, setActivePage }) {
               alignItems: 'center',
               gap: 8
             }}>
-              VERITAS VAULT
+              DIGITAL CERTIFICATE VERIFICATION
               <span style={{
                 fontSize: '0.65rem',
                 padding: '2px 6px',
