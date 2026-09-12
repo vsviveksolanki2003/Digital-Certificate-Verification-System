@@ -4,10 +4,39 @@ const config = require('./config/env');
 
 const app = express();
 
+// Allowed CORS origins
+const allowedOrigins = [
+  'https://digital-certificate-verification-sy-eight.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000'
+];
+
+if (config.frontendUrl) {
+  config.frontendUrl.split(',').forEach(u => {
+    const clean = u.trim().replace(/\/+$/, '');
+    if (clean && !allowedOrigins.includes(clean)) {
+      allowedOrigins.push(clean);
+    }
+  });
+}
+
 // Middlewares
 app.use(cors({
-  origin: config.frontendUrl,
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
