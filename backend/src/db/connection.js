@@ -5,51 +5,60 @@ const config = require('../config/env');
 let dbClient = null;
 let isPostgres = false;
 
-// Initialize Database connection
-function initDatabase() {
-  if (config.databaseUrl && config.databaseUrl.startsWith('postgres')) {
-    const { Pool } = require('pg');
-    isPostgres = true;
-    dbClient = new Pool({
-      connectionString: config.databaseUrl,
-      ssl: config.databaseUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
-    });
-    console.log('[Database] Connected to PostgreSQL (Neon)');
-  } else {
-    const { DatabaseSync } = require('node:sqlite');
-    isPostgres = false;
-    const dataDir = path.resolve(__dirname, '../../data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    const dbPath = path.join(dataDir, 'cert_vault.sqlite');
-    dbClient = new DatabaseSync(dbPath);
-    // Enable WAL mode & foreign keys for performance and data integrity
-    dbClient.exec('PRAGMA journal_mode = WAL;');
-    dbClient.exec('PRAGMA foreign_keys = ON;');
-    console.log(`[Database] Connected to SQLite: ${dbPath}`);
-  }
+let initPromise = null;
 
-  // Run schema DDL
-  const schemaPath = path.resolve(__dirname, 'schema.sql');
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-  
-  if (isPostgres) {
-    // Execute schema in Postgres pool
-    dbClient.query(schemaSql).catch(err => {
-      console.error('[Database] Error executing schema on Postgres:', err);
-    });
-  } else {
-    // Execute schema in SQLite
-    dbClient.exec(schemaSql);
-  }
+// Initialize Database connection
+async function initDatabase() {
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    if (config.databaseUrl && config.databaseUrl.startsWith('postgres')) {
+      const { Pool } = require('pg');
+      isPostgres = true;
+      dbClient = new Pool({
+        connectionString: config.databaseUrl,
+        ssl: { rejectUnauthorized: false }
+      });
+      console.log('[Database] Connected to PostgreSQL (Neon)');
+    } else {
+      const { DatabaseSync } = require('node:sqlite');
+      isPostgres = false;
+      const dataDir = path.resolve(__dirname, '../../data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      const dbPath = path.join(dataDir, 'cert_vault.sqlite');
+      dbClient = new DatabaseSync(dbPath);
+      // Enable WAL mode & foreign keys for performance and data integrity
+      dbClient.exec('PRAGMA journal_mode = WAL;');
+      dbClient.exec('PRAGMA foreign_keys = ON;');
+      console.log(`[Database] Connected to SQLite: ${dbPath}`);
+    }
+
+    // Run schema DDL
+    const schemaPath = path.resolve(__dirname, 'schema.sql');
+    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    
+    if (isPostgres) {
+      await dbClient.query(schemaSql);
+      console.log('[Database] Schema verified on PostgreSQL (Neon)');
+    } else {
+      dbClient.exec(schemaSql);
+    }
+  })();
+
+  return initPromise;
 }
 
-// Convert SQLite '?' placeholder to Postgres '$1, $2, ...'
+// Convert SQLite syntax and '?' placeholder to Postgres
 function formatQuery(sql) {
   if (!isPostgres) return sql;
+  let formatted = sql;
+  formatted = formatted.replace(/datetime\('now',\s*'-(\d+)\s*days?'\)/gi, "CURRENT_TIMESTAMP - INTERVAL '$1 days'");
+  formatted = formatted.replace(/datetime\('now',\s*'-(\d+)\s*hours?'\)/gi, "CURRENT_TIMESTAMP - INTERVAL '$1 hours'");
+  formatted = formatted.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
   let paramIndex = 1;
-  return sql.replace(/\?/g, () => `$${paramIndex++}`);
+  return formatted.replace(/\?/g, () => `$${paramIndex++}`);
 }
 
 // Unified query methods
