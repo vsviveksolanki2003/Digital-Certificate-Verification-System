@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://digital-certificate-verification-system-v7xm.onrender.com';
+const API_BASE = `${BACKEND_URL.replace(/\/+$/, '')}/api`;
 
 /**
  * Custom fetch wrapper that attaches Bearer token and parses JSON
